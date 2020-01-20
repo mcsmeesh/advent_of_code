@@ -1,0 +1,8 @@
+{
+    "name": "Advent of Code",
+    "dockerFile": "Dockerfile",
+    "extensions": [],
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+    }
+}
