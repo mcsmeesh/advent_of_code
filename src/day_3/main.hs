@@ -56,42 +56,48 @@ parseWirePath ::
 parseWirePath s = words sSpaceSeparated
   where sSpaceSeparated = map (\c -> if c == ',' then ' ' else c) s
 
+intersectingWireCoords ::
+  [(Integer, Integer)]
+  -> [(Integer, Integer)]
+  -> [(Integer, Integer)]
+intersectingWireCoords firstWireCoords secondWireCoords = intersectingCoords
+  where intersectingCoords = wireIntersections (tail firstWireCoords) (tail secondWireCoords)
+
+delayDistanceCalculator ::
+  M.Map (Integer,Integer) Integer
+  -> M.Map (Integer,Integer) Integer
+  -> (Integer,Integer)
+  -> Integer
+delayDistanceCalculator firstWireMap secondWireMap coord = (firstWireMap M.! coord) + (secondWireMap M.! coord)
+
 readInputs ::
   String
   -> IO Integer
 readInputs filename = do
   rawContent <- readFile filename
   let xs = lines rawContent
-  let firstWirePath = parseWirePath $ head xs
-  let secondWirePath = parseWirePath $ last xs
-  let firstWireCoords = traceWirePath firstWirePath
-  let secondWireCoords = traceWirePath secondWirePath
-  let intersectionCoords = wireIntersections (tail firstWireCoords) (tail secondWireCoords)
+  let firstWireCoords = traceWirePath $ parseWirePath $ head xs
+  let secondWireCoords = traceWirePath $ parseWirePath $ last xs
+  let intersectingCoords = intersectingWireCoords firstWireCoords secondWireCoords
 -- We want to map each coordinate to the Manhattan distance, then take the
 -- minimum
-  let minimumManhattanDistance = minimum $ map (\(x,y) -> abs(x) + abs(y)) intersectionCoords
-  return minimumManhattanDistance
+  let minimumDistance = minimum $ map (\(x,y) -> abs(x) + abs(y)) intersectingCoords
+  return minimumDistance
 
--- When we trace the wirePath, we now want to also have the index of it since
--- it's the 'delay'. [(0,0),(1,0),..,(1,0),..] -> [((0,0),0), ((1,0),1)]
--- From here we can convert this to a map since it's associative array
--- dict[coord] = delay
--- intersection dict1.keys() dict2.keys() -> intersecting_coords
--- intersecting_coords -> net_delay -> min [[dict1[coord] + dict2[coord]]]
 readInputs2 ::
   String
   -> IO Integer
 readInputs2 filename = do
   rawContent <- readFile filename
   let xs = lines rawContent
-  let firstWirePath = parseWirePath $ head xs
-  let secondWirePath = parseWirePath $ last xs
-  let firstWireCoords = traceWirePath firstWirePath
-  let secondWireCoords = traceWirePath secondWirePath
-  let firstWireCoordsToIndex = M.fromList $ reverse $ zip (tail firstWireCoords) [1..]
-  let secondWireCoordsToIndex = M.fromList $ reverse $ zip (tail secondWireCoords) [1..]
-  let intersectingMap = M.intersection firstWireCoordsToIndex secondWireCoordsToIndex
-  let calculateNetDelay = (\coord _ -> (firstWireCoordsToIndex M.! coord) + (secondWireCoordsToIndex M.! coord))
-  let intersectingCoordsToNetDelay = M.mapWithKey calculateNetDelay intersectingMap
-  let minimumDelay = minimum $ map (\(_,netDelay) -> netDelay) (M.toList intersectingCoordsToNetDelay)
-  return minimumDelay
+  let firstWireCoords = traceWirePath $ parseWirePath $ head xs
+  let secondWireCoords = traceWirePath $ parseWirePath $ last xs
+  let intersectingCoords = intersectingWireCoords firstWireCoords secondWireCoords
+  let firstWireCoordsToIndex = M.fromList $ reverse $ zip firstWireCoords [0..]
+  let secondWireCoordsToIndex = M.fromList $ reverse $ zip secondWireCoords [0..]
+  let distanceFn = delayDistanceCalculator firstWireCoordsToIndex secondWireCoordsToIndex
+-- We want to map each coordinate to the Manhattan distance, then take the
+-- minimum
+  let minimumDistance = minimum $ map distanceFn intersectingCoords
+  return minimumDistance
+
